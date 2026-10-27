@@ -285,22 +285,46 @@ data "azapi_resource_list" "diagnostic_categories" {
   }
 }
 
-resource "azurerm_key_vault_certificate_contacts" "this" {
+resource "azapi_data_plane_resource" "certificate_contacts" {
   count = length(var.contacts) > 0 ? 1 : 0
 
-  key_vault_id = azapi_resource.this.id
+  parent_id = trimsuffix(trimprefix(azapi_resource.this.output.properties.vaultUri, "https://"), "/")
+  type      = var.resource_types.keyvault_vaults_certificates_contacts
+  body = {
+    contacts = [
+      for contact in values(var.contacts) : {
+        email = contact.email
+        name  = contact.name
+        phone = contact.phone
+      }
+    ]
+  }
+  response_export_values = []
+  retry                  = var.retry
 
-  dynamic "contact" {
-    for_each = var.contacts
+  dynamic "timeouts" {
+    for_each = var.timeouts == null ? [] : [var.timeouts]
 
     content {
-      email = contact.value.email
-      name  = contact.value.name
-      phone = contact.value.phone
+      create = timeouts.value.create
+      delete = timeouts.value.delete
+      read   = timeouts.value.read
+      update = timeouts.value.update
     }
   }
 
   depends_on = [time_sleep.wait_for_rbac_before_contact_operations]
+}
+
+# `azapi_data_plane_resource` cannot take over the state of the AzureRM resource. The old resource
+# is dropped from the state without being deleted, and the PUT above replaces the vault's contact
+# list with the same contacts, so upgrading never leaves the vault without contacts.
+removed {
+  from = azurerm_key_vault_certificate_contacts.this
+
+  lifecycle {
+    destroy = false
+  }
 }
 
 resource "time_sleep" "wait_for_rbac_before_contact_operations" {

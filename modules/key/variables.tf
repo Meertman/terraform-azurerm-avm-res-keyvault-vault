@@ -133,3 +133,65 @@ variable "tags" {
   default     = null
   description = "The tags to assign to the key."
 }
+
+variable "enable_telemetry" {
+  type        = bool
+  default     = true
+  description = "Whether telemetry is enabled for the role assignment interfaces. For more information see <https://aka.ms/avm/telemetryinfo>."
+  nullable    = false
+}
+
+variable "ignore_body_changes" {
+  type = object({
+    authorization_role_assignments = optional(list(string), [])
+  })
+  default     = {}
+  description = <<DESCRIPTION
+Paths in each resource's `body` whose changes the AzAPI provider ignores. See the root module's `ignore_body_changes` for the semantics.
+
+- `authorization_role_assignments` - The role assignments.
+DESCRIPTION
+  nullable    = false
+}
+
+variable "resource_types" {
+  type = object({
+    authorization_role_assignments = optional(string, "Microsoft.Authorization/roleAssignments@2022-04-01")
+  })
+  default     = {}
+  description = <<DESCRIPTION
+AzAPI resource types and API versions used by the module, in `<provider>/<resource>@<api-version>` form.
+
+- `authorization_role_assignments` - The role assignments.
+DESCRIPTION
+  nullable    = false
+}
+
+variable "retry" {
+  type = object({
+    error_message_regex  = optional(list(string))
+    interval_seconds     = optional(number)
+    max_interval_seconds = optional(number)
+  })
+  default     = null
+  description = <<DESCRIPTION
+Retry configuration applied to every `azapi` resource managed by the module. Defaults to `null` (no custom retry).
+
+- `error_message_regex`  - (Optional) A list of regex patterns matching error messages that trigger a retry.
+- `interval_seconds`     - (Optional) Initial interval between retries in seconds.
+- `max_interval_seconds` - (Optional) Maximum interval between retries in seconds.
+DESCRIPTION
+}
+
+variable "timeouts" {
+  type = object({
+    create = optional(string)
+    read   = optional(string)
+    update = optional(string)
+    delete = optional(string)
+  })
+  default     = null
+  description = <<DESCRIPTION
+Per-operation timeouts applied to every `azapi` resource managed by the module. Defaults to `null` (provider defaults). Each value is a Go duration string (e.g. `30m`, `1h`).
+DESCRIPTION
+}

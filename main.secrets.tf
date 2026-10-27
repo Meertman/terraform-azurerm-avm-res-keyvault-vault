@@ -3,6 +3,11 @@ module "secrets" {
   for_each = var.secrets
 
   key_vault_resource_id = azapi_resource.this.id
+  enable_telemetry      = var.enable_telemetry
+  ignore_body_changes   = { authorization_role_assignments = var.ignore_body_changes.authorization_role_assignments }
+  resource_types        = { authorization_role_assignments = var.resource_types.authorization_role_assignments }
+  retry                 = var.retry
+  timeouts              = var.timeouts
   name                  = each.value.name
   content_type          = each.value.content_type
   expiration_date       = each.value.expiration_date
