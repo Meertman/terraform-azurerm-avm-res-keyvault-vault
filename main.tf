@@ -33,7 +33,9 @@ resource "azapi_resource" "this" {
         defaultAction = var.network_acls.default_action
         ipRules       = [for rule in var.network_acls.ip_rules : { value = rule }]
         virtualNetworkRules = [
-          for subnet_id in var.network_acls.virtual_network_subnet_ids : { id = subnet_id }
+          # Azure returns the subnet IDs in lower case. The AzureRM provider compared them without regard to
+          # case; sending them in lower case keeps the plan free of case-only differences.
+          for subnet_id in var.network_acls.virtual_network_subnet_ids : { id = lower(subnet_id) }
         ]
       }
       publicNetworkAccess       = var.public_network_access_enabled ? "Enabled" : "Disabled"
@@ -222,8 +224,9 @@ resource "azapi_resource" "diagnostic_settings" {
     properties = {
       eventHubAuthorizationRuleId = each.value.event_hub_authorization_rule_resource_id
       eventHubName                = each.value.event_hub_name
-      # This module has always sent "Dedicated" as null, which leaves the choice to Azure.
-      logAnalyticsDestinationType = each.value.log_analytics_destination_type == "Dedicated" ? null : each.value.log_analytics_destination_type
+      # Sent as given, as the AzureRM-based releases sent it. Sending "Dedicated" as null would let Azure
+      # choose again on upgrade and could move the logs to the AzureDiagnostics table.
+      logAnalyticsDestinationType = each.value.log_analytics_destination_type
       # Azure echoes every category or category group it offers, including the ones that are switched
       # off, so the full set is sent with explicit flags. Sending only the enabled entries leaves the
       # disabled ones in the response and reports a difference on every plan. Groups and individual
